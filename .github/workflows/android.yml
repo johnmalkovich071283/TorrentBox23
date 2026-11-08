@@ -20,7 +20,7 @@ jobs:
           distribution: temurin
           java-version: '17'
 
-      - name: Prepare TorrentBox
+      - name: Prepare final TorrentBox
         run: |
           python3 - <<'PY'
           from pathlib import Path
@@ -31,46 +31,84 @@ jobs:
               if new in s:
                   return
               if old not in s:
-                  raise SystemExit(f"Не найден ожидаемый текст в {path}: {old}")
+                  raise SystemExit(f"Не найден текст в {path}: {old}")
               p.write_text(s.replace(old, new, 1), encoding="utf-8")
 
+          # Отдельный идентификатор приложения
+          replace(
+              "app/build.gradle",
+              "applicationId 'org.proninyaroslav.libretorrent'",
+              "applicationId 'com.torrentbox.android'"
+          )
+
+          # Название приложения
+          replace(
+              "app/src/debug/res/values/app_name.xml",
+              "LibreTorrent - Debug",
+              "TorrentBox"
+          )
           replace(
               "app/src/release/res/values/app_name.xml",
               "LibreTorrent",
               "TorrentBox"
           )
 
-          replace(
-              "app/src/debug/res/values/app_name.xml",
-              "LibreTorrent - Debug",
-              "TorrentBox"
+          # Русский язык и тёмная тема по умолчанию
+          settings = Path(
+              "app/src/main/java/org/proninyaroslav/libretorrent/core/settings/SettingsRepositoryImpl.java"
           )
-
-          replace(
-              "app/src/main/java/org/proninyaroslav/libretorrent/core/settings/SettingsRepositoryImpl.java",
+          s = settings.read_text(encoding="utf-8")
+          s = s.replace(
               "static final PrefTheme theme = new PrefTheme.System();",
               "static final PrefTheme theme = new PrefTheme.Dark();"
           )
-
-          replace(
-              "app/src/main/java/org/proninyaroslav/libretorrent/core/settings/SettingsRepositoryImpl.java",
+          s = s.replace(
               'static final String locale = "system";',
               'static final String locale = "ru";'
           )
+          settings.write_text(s, encoding="utf-8")
 
+          # Цвет фона иконки
           replace(
               "app/src/debug/res/values/ic_launcher_background.xml",
               "#5CCA4A",
-              "#80D5E7"
+              "#102A43"
           )
 
-          replace(
-              "app/src/release/res/values/ic_launcher_background.xml",
-              "#9C27B0",
-              "#123B5D"
+          # Собственная иконка TorrentBox
+          icon = '''<?xml version="1.0" encoding="utf-8"?>
+          <vector xmlns:android="http://schemas.android.com/apk/res/android"
+              android:width="108dp"
+              android:height="108dp"
+              android:viewportWidth="108"
+              android:viewportHeight="108">
+              <path
+                  android:pathData="M54,19 L54,61 M38,45 L54,61 L70,45"
+                  android:strokeColor="#80D5E7"
+                  android:strokeWidth="8"
+                  android:strokeLineCap="round"
+                  android:strokeLineJoin="round"
+                  android:fillColor="#00000000"/>
+              <path
+                  android:pathData="M25,68 L25,85 L83,85 L83,68"
+                  android:strokeColor="#FFFFFF"
+                  android:strokeWidth="7"
+                  android:strokeLineCap="round"
+                  android:strokeLineJoin="round"
+                  android:fillColor="#00000000"/>
+              <path
+                  android:pathData="M39,76 L69,76"
+                  android:strokeColor="#80D5E7"
+                  android:strokeWidth="6"
+                  android:strokeLineCap="round"
+                  android:fillColor="#00000000"/>
+          </vector>
+          '''
+          Path("app/src/debug/res/drawable/ic_launcher_foreground.xml").write_text(
+              icon, encoding="utf-8"
           )
 
-          print("Настройки TorrentBox подготовлены")
+          print("TorrentBox готов к сборке")
           PY
 
       - name: Setup Gradle
@@ -84,5 +122,5 @@ jobs:
       - name: Save APK
         uses: actions/upload-artifact@v4
         with:
-          name: TorrentBox-Final-APK
+          name: TorrentBox-Final
           path: app/build/outputs/apk/base/debug/*.apk
